@@ -182,5 +182,92 @@ par(mfrow = c(1, 1))
 ##Bivariate analysis
 ##Correlation
 cormat <- round(cor(data[sapply(data, is.numeric)]),2)
-corrplot(cormat, method = "circle", type = "lower", 
+corrplot(cormat, method = "number", type = "lower", 
          tl.col = "black", tl.srt = 45)
+#TB and DB are highly correlated
+#Sgpt and Sgot are highly correlated
+#TP and ALB are highly correlated
+#AVG_ratio and ALB are highly correlated
+
+#Gender and Response
+contingency_table <- table(data$Gender, data$Response)  
+contingency_table
+chi_squared_test <- chisq.test(contingency_table)
+chi_squared_test
+
+
+#Function to boxplot
+boxplot_response <- function(data, variable) {
+  data_0 <- data[[variable]][data$Response == 0]
+  data_1 <- data[[variable]][data$Response == 1]
+  boxplot(data_0, data_1,
+          main = paste(variable, "Boxplot"),
+          ylab = variable,
+          xlab = "Response",
+          names = c("0", "1"),
+          col = c("lightblue", "red"))
+}
+#Function to density plot
+density_response <- function(data, variable) {
+  dens_0 <- density(data[[variable]][data$Response == 0])
+  dens_1 <- density(data[[variable]][data$Response == 1])
+  plot(dens_0, col = "lightblue", main = paste(variable, "Density Plot"), xlab = variable, ylab = "Density", lwd = 2)
+  lines(dens_1, col = "red", lwd = 2)
+  legend("topright", legend = c("0", "1"), fill = c("lightblue", "red"))
+}
+
+#Age and Response
+par(mfrow = c(1, 2))
+boxplot_response(data, "Age")
+density_response(data, "Age")
+#The age do not seem to be a good predictor of the response variable
+
+#TB and Response
+par(mfrow = c(1, 2))
+boxplot_response(data, "TB")
+density_response(data, "TB")
+#The TB seems to be a good predictor of the response variable
+
+#DB and Response
+par(mfrow = c(1, 2))
+boxplot_response(data, "DB")
+density_response(data, "DB")
+#The DB seems to be a good predictor of the response variable
+
+#Alkphos and Response
+par(mfrow = c(1, 2))
+boxplot_response(data, "Alkphos")
+density_response(data, "Alkphos")
+#The Alkphos seems to be a good predictor of the response variable
+
+#Sgpt and Response
+par(mfrow = c(1, 2))
+boxplot_response(data, "Sgpt")
+density_response(data, "Sgpt")
+#The Sgpt seems to be a good predictor of the response variable
+
+#Sgot and Response
+par(mfrow = c(1, 2))
+boxplot_response(data, "Sgot")
+density_response(data, "Sgot")
+#The Sgot seems to be a good predictor of the response variable
+
+#TP and Response
+par(mfrow = c(1, 2))
+boxplot_response(data, "TP")
+density_response(data, "TP")
+#The TP do not seem to be a good predictor of the response variable
+
+#ALB and Response
+par(mfrow = c(1, 2))
+boxplot_response(data, "ALB")
+density_response(data, "ALB")
+#The ALB do not seem to be a good predictor of the response variable
+
+#AVG_ratio and Response
+par(mfrow = c(1, 2))
+boxplot_response(data, "AVG_ratio")
+density_response(data, "AVG_ratio")
+#The AVG_ratio do not seem to be a good predictor of the response variable
+
+
