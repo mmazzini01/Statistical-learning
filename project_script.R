@@ -2,7 +2,8 @@
 ## library
 library(readr)
 library(rmarkdown)
-library(caret)
+library(corrplot)
+
 
 #####
 ##Data Pre-Processing
@@ -21,16 +22,165 @@ any(is.na(data))
 #train test splitting
 #we want to respect the proportion of response variable in both train and test set
 #we use a stratified sampling
-train_indices <- createDataPartition(data$Response, p = 0.75, list = FALSE)
-data_train <- data[train_indices, ]
-data_test <- data[-train_indices, ]
+# Proporzione del training set
+train_proportion <- 0.75
+train_set <- data.frame()
+test_set <- data.frame()
+for (level in unique(data$Response)) {
+  subset_data <- data[data$Response == level, ]
+  train_size <- round(nrow(subset_data) * train_proportion)
+  train_indices <- sample(1:nrow(subset_data), train_size)
+  train_subset <- subset_data[train_indices, ]
+  test_subset <- subset_data[-train_indices, ]
+  train_set <- rbind(train_set, train_subset)
+  test_set <- rbind(test_set, test_subset)
+}
 #check proportion
-data_prop<-round(prop.table(table(data$Response)),3)
-train_prop<-round(prop.table(table(data_train$Response)),3)
-test_prop<-round(prop.table(table(data_test$Response)),3)
+train_prop <- round(prop.table(table(train_set$Response)),3)
+test_prop <- round(prop.table(table(test_set$Response)),3)
+data_prop<- round(prop.table(table(data$Response)),3)
 cat('data: ',data_prop,'train: ',train_prop,'test: ',test_prop)
+
+#train_indices <- createDataPartition(data$Response, p = 0.75, list = FALSE)
+#data_train <- data[train_indices, ]
+#data_test <- data[-train_indices, ]
+#check proportion
+#data_prop<-round(prop.table(table(data$Response)),3)
+#train_prop<-round(prop.table(table(data_train$Response)),3)
+#test_prop<-round(prop.table(table(data_test$Response)),3)
+#cat('data: ',data_prop,'train: ',train_prop,'test: ',test_prop)
 
 #####
 ## Esplorative analysis
-
-
+##Univariate Analysis
+#Response
+barplot(table(data$Response),
+        main = "Response frequency",
+        xlab = "Response",
+        ylab = "Frequency",
+        col = c("skyblue", "salmon"),
+        ylim = c(0, max(table(data$Response)) + 1))
+#response variable quite unbalanced as seen before
+#Gender
+barplot(table(data$Gender),
+        main = "Gender Bar Plot",
+        xlab = "Category",
+        ylab = "Frequency",
+        col = c("skyblue", "salmon", "lightgreen"))
+#Age
+par(mfrow = c(1, 2))
+boxplot(data$Age,
+        main = "Age Boxplot",
+        ylab = "Age",
+        col = "lightblue")
+hist(data$Age,
+     main = "Age Histogram",
+     xlab = "Values",
+     col = "lightblue",
+     border = "black")
+#age variable seems to be quite symmetric
+par(mfrow = c(1, 1))
+qqnorm(data$Age)
+qqline(data$Age, col = "red", lwd = 2)
+#TB
+par(mfrow = c(1, 2))
+boxplot(data$TB,
+        main = "TB Boxplot",
+        ylab = "TB",
+        col = "lightblue")
+hist(data$TB,
+     main = "TB Histogram",
+     xlab = "Values",
+     col = "lightblue",
+     border = "black")
+#DB
+par(mfrow = c(1, 2))
+boxplot(data$DB,
+        main = "DB Boxplot",
+        ylab = "DB",
+        col = "lightblue")
+hist(data$DB,
+     main = "DB Histogram",
+     xlab = "Values",
+     col = "lightblue",
+     border = "black")
+#Alkphos
+par(mfrow = c(1, 2))
+boxplot(data$Alkphos,
+        main = "Alkphos Boxplot",
+        ylab = "Alkphos",
+        col = "lightblue")
+hist(data$Alkphos,
+     main = "Alkphos Histogram",
+     xlab = "Values",
+     col = "lightblue",
+     border = "black")
+#Sgpt
+par(mfrow = c(1, 2))
+boxplot(data$Sgpt,
+        main = "Sgpt Boxplot",
+        ylab = "Sgpt",
+        col = "lightblue")
+hist(data$Sgpt,
+     main = "Sgpt Histogram",
+     xlab = "Values",
+     col = "lightblue",
+     border = "black")
+#sgot
+par(mfrow = c(1, 2))
+boxplot(data$Sgot,
+        main = "Sgot Boxplot",
+        ylab = "Sgot",
+        col = "lightblue")
+hist(data$Sgot,
+     main = "Sgot Histogram",
+     xlab = "Values",
+     col = "lightblue",
+     border = "black")
+#TP
+par(mfrow = c(1, 2))
+boxplot(data$TP,
+        main = "TP Boxplot",
+        ylab = "TP",
+        col = "lightblue")
+hist(data$Sgpt,
+     main = "TP Histogram",
+     xlab = "Values",
+     col = "lightblue",
+     border = "black",
+     log = "y")
+#ALB
+par(mfrow = c(1, 2))
+boxplot(data$ALB,
+         main = "ALB Boxplot",
+         ylab = "ALB",
+         col = "lightblue")
+hist(data$ALB,
+     main = "ALB Histogram",
+     xlab = "Values",
+     col = "lightblue",
+     border = "black")
+#ALB seems to be quite symmetric
+par(mfrow = c(1, 1))
+qqnorm(data$ALB)
+qqline(data$ALB, col = "red", lwd = 2)
+#AVG_ratio
+par(mfrow = c(1, 2))
+boxplot(data$AVG_ratio,
+        main = "AVG_ratio Boxplot",
+        ylab = "AVG_ratio",
+        col = "lightblue")
+hist(data$AVG_ratio,
+     main = "AVG_ratio Histogram",
+     xlab = "Values",
+     col = "lightblue",
+     border = "black")
+par(mfrow = c(1, 1))
+#Age and ALB quite symmetric, both likely a normal distribution with some deviation in the tails
+#variable TB,DB, Alkphos, Sgpt, Sgot and TP have strong positive skewnwess
+#AVG_ratio positive skeweness
+##Bivariate analysis
+##Correlation
+cormat <- round(cor(data[sapply(data, is.numeric)]),2)
+corrplot(cormat, method = "circle", type = "lower", 
+         tl.col = "black", tl.srt = 45)
