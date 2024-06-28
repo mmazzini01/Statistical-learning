@@ -7,16 +7,16 @@ library(corrplot)
 
 #####
 ##Data Pre-Processing
-c_names <- c('Age', 'Gender','TB','DB','Alkphos','Sgpt','Sgot','TP','ALB','AVG_ratio','Response')
+c_names <- c('Age', 'Gender','TB','DB','Alkphos','Sgpt','Sgot','TP','ALB','AG_ratio','Response')
 data <- read_csv('Indian Liver Patient Dataset (ILPD).csv', col_names = c_names)
 data$Response[data$Response == 2] <- 0
 str(data)
 #tranform gender and response variable into factor 
 data$Gender <- as.factor(data$Gender)
 data$Response <- as.factor(data$Response)
-summary(data) #4 NA values in avg_ratio variable
+summary(data) #4 NA values in ag_ratio variable
 #replacing NA's
-data$AVG_ratio[is.na(data$AVG_ratio)]<- median(data$AVG_ratio, na.rm = TRUE)
+data$AG_ratio[is.na(data$AG_ratio)]<- median(data$AG_ratio, na.rm = TRUE)
 summary(data)
 any(is.na(data))
 #train test splitting
@@ -164,21 +164,21 @@ hist(data$ALB,
 par(mfrow = c(1, 1))
 qqnorm(data$ALB)
 qqline(data$ALB, col = "red", lwd = 2)
-#AVG_ratio
+#AG_ratio
 par(mfrow = c(1, 2))
-boxplot(data$AVG_ratio,
-        main = "AVG_ratio Boxplot",
-        ylab = "AVG_ratio",
+boxplot(data$AG_ratio,
+        main = "AG_ratio Boxplot",
+        ylab = "AG_ratio",
         col = "lightblue")
-hist(data$AVG_ratio,
-     main = "AVG_ratio Histogram",
+hist(data$AG_ratio,
+     main = "AG_ratio Histogram",
      xlab = "Values",
      col = "lightblue",
      border = "black")
 par(mfrow = c(1, 1))
 #Age and ALB quite symmetric, both likely a normal distribution with some deviation in the tails
 #variable TB,DB, Alkphos, Sgpt, Sgot and TP have strong positive skewnwess
-#AVG_ratio positive skeweness
+#AG_ratio positive skeweness
 ##Bivariate analysis
 #Gender and Response
 contingency_table <- table(data$Gender, data$Response)  
@@ -257,8 +257,8 @@ density_response(data, "ALB")
 
 #AVG_ratio and Response
 par(mfrow = c(1, 2))
-boxplot_response(data, "AVG_ratio")
-density_response(data, "AVG_ratio")
+boxplot_response(data, "AG_ratio")
+density_response(data, "AG_ratio")
 #The AVG_ratio do not seem to be a good predictor of the response variable
 ##Correlation
 num_vars <- c_names[-c(2,11)]
