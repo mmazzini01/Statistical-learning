@@ -1,0 +1,85 @@
+---
+title: "Liver Disease Prediction"
+author: "Lorenzo Baietti, Francesco Carlesso, Matteo Mazzini"
+date: "A.Y. 2023/2024"
+font: 11pt
+output:
+  pdf_document:
+    toc: true
+    # number_sections: true
+  html_document:
+    toc: true
+    # number_sections: true
+---
+
+## Project Introduction and Dataset Description
+
+Liver Diseases can be caused by different kind of factors such as viruses, genetics, excessive alcohol consumption, drug usage, obesity, etc. Early diagnosis is crucial for carrying out a successful treatment, therefore we decided perform an analysis to understand which are the most influential biochemical markers that define this condition, focusing on a binary classification task which uses parameters that can be obtained simply by performing blood tests. The dataset we are going to analyze and use for our task is the [Indian Liver Patient Dataset (ILPD)](https://archive.ics.uci.edu/ml/datasets/ILPD+(Indian+Liver+Patient+Dataset)) present in the UCI Machine Learning Repository. This dataset contains 583 patient records, split between 441 males and 142 females, and described by 10 variables plus a binary target for the diagnosis. Out of all the patients, 416 have a positive diagnosis.
+
+## Data Preprocessing
+
+First, we import all the necessary packages to manipulate the data, then we load the dataset assigning the correct column names to it.
+
+```{r include=FALSE}
+library(corrplot)
+library(car)
+library(pROC)
+library(e1071)
+library(class)
+library(boot)
+library(leaps)
+library(glmnet)
+```
+
+```{r}
+c_names <- c('Age', 'Gender','TB','DB','Alkphos','Sgpt','Sgot','TP','ALB','AG_ratio','Response')
+
+data <- read.csv('Indian Liver Patient Dataset (ILPD).csv', col.names = c_names, header = FALSE)
+```
+
+Since there is a preprocessing operation declared in the dataset information, that is: *Any patient whose age exceeded 89 is listed as being of age "90"*, we check how many patients are listed to be 90 years old, and we find that there is only one. We conjecture that this transformation is therefore understandable, and necessary to avoid creating non-significant outliers, also, given that this represents a very small proportion of the data, we accept it as it is.
+
+```{r}
+age_count_90 <- sum(data$Age == 90)
+age_count_90
+```
+
+We then transform the response variable into a binary one, where '1' indicates the presence of liver disease and '0' the absence, given that in the original dataset the latter is marked with '2'.
+
+```{r}
+data$Response[data$Response == 2] <- 0
+
+#check the structure of the data
+str(data)
+```
+
+By checking the structure of the data we notice that we need to transform the `Gender` and `Response` variables into factors.
+
+```{r}
+data$Gender <- as.factor(data$Gender)
+data$Response <- as.factor(data$Response)
+
+summary(data)
+```
+
+From the summary we can see that there are 4 NA values in the `AG_ratio` variable. We decide to replace them with the median of the column.
+
+```{r}
+
+```
+
+| Variable | Description                                                       |
+|:---------|:------------------------------------------------------------------|
+| Age      | Age of the patient                                                |
+| Gender   | Gender of the patient                                             |
+| TB       | Total Bilirubin in milligrams per deciliter (mg/dL)               |
+| DB       | Direct Bilirubin in milligrams per deciliter (mg/dL)              |
+| Alkphos  | Alkaline Phosphotase in units per Liter (U/L)                     |
+| Sgpt     | Alamine Aminotransferase in units per Liter (U/L)                 |
+| Sgot     | Aspartate Aminotransferase in units per Liter (U/L)               |
+| TP       | Total Proteins in grams per deciliter (g/dL)                      |
+| ALB      | Albumin in grams per deciliter (g/dL)                             |
+| AG_ratio | Albumin vs. Globulin ratio                                        |
+| Response | '1' if the patient is diagnosed with Liver Disease, '0' otherwise |
+
+\
