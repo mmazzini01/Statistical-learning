@@ -180,15 +180,6 @@ par(mfrow = c(1, 1))
 #variable TB,DB, Alkphos, Sgpt, Sgot and TP have strong positive skewnwess
 #AVG_ratio positive skeweness
 ##Bivariate analysis
-##Correlation
-cormat <- round(cor(data[sapply(data, is.numeric)]),2)
-corrplot(cormat, method = "number", type = "lower", 
-         tl.col = "black", tl.srt = 45)
-#TB and DB are highly correlated
-#Sgpt and Sgot are highly correlated
-#TP and ALB are highly correlated
-#AVG_ratio and ALB are highly correlated
-
 #Gender and Response
 contingency_table <- table(data$Gender, data$Response)  
 contingency_table
@@ -269,5 +260,13 @@ par(mfrow = c(1, 2))
 boxplot_response(data, "AVG_ratio")
 density_response(data, "AVG_ratio")
 #The AVG_ratio do not seem to be a good predictor of the response variable
-
-
+##Correlation
+num_vars <- c_names[-c(2,11)]
+pairs(data[, num_vars], pch = 16)
+cormat <- round(cor(data[,num_vars]),2)
+corrplot(cormat, method = "circle", type = "lower", 
+         tl.col = "black", tl.srt = 45)
+#TB and DB are highly correlated
+#Sgpt and Sgot are highly correlated
+#TP and ALB are highly correlated
+#AVG_ratio and ALB are highly correlated
