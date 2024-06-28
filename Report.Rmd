@@ -12,11 +12,11 @@ output:
     # number_sections: true
 ---
 
-## Project Introduction and Dataset Description
+## 1. Project Introduction and Dataset Description
 
 Liver Diseases can be caused by different kind of factors such as viruses, genetics, excessive alcohol consumption, drug usage, obesity, etc. Early diagnosis is crucial for carrying out a successful treatment, therefore we decided perform an analysis to understand which are the most influential biochemical markers that define this condition, focusing on a binary classification task which uses parameters that can be obtained simply by performing blood tests. The dataset we are going to analyze and use for our task is the [Indian Liver Patient Dataset (ILPD)](https://archive.ics.uci.edu/ml/datasets/ILPD+(Indian+Liver+Patient+Dataset)) present in the UCI Machine Learning Repository. This dataset contains 583 patient records, split between 441 males and 142 females, and described by 10 variables plus a binary target for the diagnosis. Out of all the patients, 416 have a positive diagnosis.
 
-## Data Preprocessing
+## 2. Data Preprocessing
 
 First, we import all the necessary packages to manipulate the data, then we load the dataset assigning the correct column names to it.
 
@@ -70,13 +70,13 @@ any(is.na(data))
 ```
 
 | Variable | Description                                                       |
-|:------------------|:----------------------------------------------------|
+|:-------------------------|:---------------------------------------------|
 | Age      | Age of the patient                                                |
 | Gender   | Gender of the patient                                             |
 | TB       | Total Bilirubin in milligrams per deciliter (mg/dL)               |
 | DB       | Direct Bilirubin in milligrams per deciliter (mg/dL)              |
 | Alkphos  | Alkaline Phosphotase in units per Liter (U/L)                     |
-| Sgpt     | Alamine Aminotransferase in units per Liter (U/L)                 |
+| Sgpt     | Alanine Aminotransferase in units per Liter (U/L)                 |
 | Sgot     | Aspartate Aminotransferase in units per Liter (U/L)               |
 | TP       | Total Proteins in grams per deciliter (g/dL)                      |
 | ALB      | Albumin in grams per deciliter (g/dL)                             |
@@ -108,9 +108,9 @@ data_prop <- round(prop.table(table(data$Response)),3)
 cat('data: ',data_prop,'train: ',train_prop,'test: ',test_prop)
 ```
 
-## Explorative Analysis
+## 3. Data Exploration
 
-### Univariate Analysis
+### 3.1 Univariate Analysis
 
 We perform a univariate analysis on our variables to get a sense of their distributions and characteristics. Given the constraints on the report's length we do not provide the plots for each variable but just the more distinctive ones, in any case, the script with comments is provided below and should be sufficient to understand the analysis when coupled with the few plots given.
 
@@ -256,7 +256,9 @@ par(mfrow = c(1, 1))
 #variable AG_ratio exhibits mild positive skeweness
 ```
 
-### Bivariate Analysis
+### 3.2 Bivariate Analysis
+
+We now perform a bivariate analysis to understand the relationships between the candidate predictors and the response variable. We start from the `Gender` variable, which being categorical requires a different treatment from all the other ones, we analyze it using a contingency table and performing a chi-squared test.
 
 ```{r}
 #Gender and Response
@@ -264,8 +266,12 @@ contingency_table <- table(data$Gender, data$Response)
 contingency_table
 chi_squared_test <- chisq.test(contingency_table)
 chi_squared_test
-#using a significance level of 0.05 we fail to reject the null hypothesis, since the p-value is 0.05967 this means that, based on our data, there is not enough evidence to conclude that there is a significant association between gender and the diagnosis.
+
 ```
+
+Using a significance level of 0.05 we fail to reject the null hypothesis, since the p-value is 0.05967 this means that, based on our data, there is not enough evidence to conclude that there is a significant association between gender and the diagnosis.
+
+Next we proceed to analyze the other numerical variables, for each of them we provide a boxplot and a density plot, which are defined by two specific functions declared at the beginning of the script and used to create better visualizations. Again, we do not provide all of the plots but just some of them useful to understand the considerations provided in the comments.
 
 ```{r}
 #Function for the boxplot
@@ -293,63 +299,66 @@ density_response <- function(data, variable) {
 par(mfrow = c(1, 2))
 boxplot_response(data, "Age")
 density_response(data, "Age")
-#The age do not seem to be a good predictor of the response variable
+#Age DOES NOT seem to be a good predictor of the response variable
 
 #TB and Response
 par(mfrow = c(1, 2))
 boxplot_response(data, "TB")
 density_response(data, "TB")
-#The TB seems to be a good predictor of the response variable
+#TB seems to be a good predictor of the response variable
 
 #DB and Response
 par(mfrow = c(1, 2))
 boxplot_response(data, "DB")
 density_response(data, "DB")
-#The DB seems to be a good predictor of the response variable
+#DB seems to be a good predictor of the response variable
 
 #Alkphos and Response
 par(mfrow = c(1, 2))
 boxplot_response(data, "Alkphos")
 density_response(data, "Alkphos")
-#The Alkphos seems to be a good predictor of the response variable
+#Alkphos seems to be a good predictor of the response variable
 
 #Sgpt and Response
 par(mfrow = c(1, 2))
 boxplot_response(data, "Sgpt")
 density_response(data, "Sgpt")
-#The Sgpt seems to be a good predictor of the response variable
+#Sgpt seems to be a good predictor of the response variable
 
 #Sgot and Response
 par(mfrow = c(1, 2))
 boxplot_response(data, "Sgot")
 density_response(data, "Sgot")
-#The Sgot seems to be a good predictor of the response variable
+#Sgot seems to be a good predictor of the response variable
 
 #TP and Response
 par(mfrow = c(1, 2))
 boxplot_response(data, "TP")
 density_response(data, "TP")
-#The TP do not seem to be a good predictor of the response variable
+#TP DOES NOT seem to be a good predictor of the response variable
 
 #ALB and Response
 par(mfrow = c(1, 2))
 boxplot_response(data, "ALB")
 density_response(data, "ALB")
-#The ALB do not seem to be a good predictor of the response variable
+#ALB DOES NOT seem to be a good predictor of the response variable
 
 #AVG_ratio and Response
 par(mfrow = c(1, 2))
 boxplot_response(data, "AG_ratio")
 density_response(data, "AG_ratio")
-#The AVG_ratio do not seem to be a good predictor of the response variable
+#AVG_ratio DOES NOT seem to be a good predictor of the response variable
 ```
+
+### 3.3 Correlation Analysis
+
+As a last step to our EDA, we perform a correlation analysis to understand the relationships between the numerical variables and to grasp which could be the variables characterized by a multicollinearity problem, thus we provide a correlation matrix.
 
 ```{r}
 #Correlation
 num_vars <- c_names[-c(2,11)]
-pairs(data[, num_vars], pch = 16)
 cormat <- round(cor(data[,num_vars]),2)
-corrplot(cormat, method = "circle", type = "lower", 
+corrplot(cormat, method = "number", type = "lower", 
          tl.col = "black", tl.srt = 45)
 
 #TB and DB are highly correlated
@@ -357,3 +366,19 @@ corrplot(cormat, method = "circle", type = "lower",
 #TP and ALB are highly correlated
 #AVG_ratio and ALB are highly correlated
 ```
+
+![](Correlations%20Plot.png)
+
+Below we provide motivations for the high correlations found between some of the variables:
+
+-   *TB and DB*: Total Bilirubin is the sum of Direct Bilirubin and Indirect Bilirubin, therefore it is expected that the total and the direct are strongly positively correlated. Furthermore, medical literature suggests that the direct bilirubin is a more specific indicator of liver disease than the total bilirubin, therefore it is possible for DB to be a better predictor of the response variable.
+
+-   *Sgpt and Sgot*: Sgpt or ALT (Alanine Aminotransferase) and Sgot or AST (Aspartate Aminotransferase) are two enzymes that are found in the liver. They are often used together to diagnose liver disease, thus it is expected that they are highly correlated. However, Sgpt (ALT) is more specific to liver damage than Sgot (AST), therefore it is possible for Sgpt to be a better predictor of the response variable.
+
+-   *TP and ALB*: Total Proteins in the blood are composed of Albumin and Globulins, therefore it is expected that the total and the albumin are strongly positively correlated. However, Albumin is the most abundant protein in the blood and is produced by the liver, therefore it is possible for ALB to be a better predictor of the response variable.
+
+-   *ALB and AVG_ratio*: For the reasons outlined in the previous point, it is expected that Albumin and the A/G ratio are highly correlated. Again, since albumin is more liver specific, it is possible for ALB to be a better predictor of the response variable.
+
+## 4. Data Modeling
+
+## 5. Data Interpretation
