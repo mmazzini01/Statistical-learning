@@ -62,10 +62,11 @@ data$Response <- as.factor(data$Response)
 summary(data)
 ```
 
-From the summary we can see that there are 4 NA values in the `AG_ratio` variable. We decide to replace them with the median of the column.
+From the summary we can see that there are 4 NA values in the `AG_ratio` variable. We decide to replace them with the median of the column since it is less sensible to extreme points.
 
 ```{r}
-
+data$AG_ratio[is.na(data$AG_ratio)]<- median(data$AG_ratio, na.rm = TRUE)
+any(is.na(data))
 ```
 
 | Variable | Description                                                       |
@@ -82,4 +83,31 @@ From the summary we can see that there are 4 NA values in the `AG_ratio` variabl
 | AG_ratio | Albumin vs. Globulin ratio                                        |
 | Response | '1' if the patient is diagnosed with Liver Disease, '0' otherwise |
 
-\
+Given that the data is pretty unbalanced with respect to the response variable, we decide to perform stratified sampling when doing the train-test split, in order to respect the proportion of the response variable values in both sets, thus trying to avoid biased results. We choose a 0.75 train and 0.25 test split.
+
+```{r}
+#train-test splitting
+
+train_proportion <- 0.75
+train_set <- data.frame()
+test_set <- data.frame()
+for (level in unique(data$Response)) {
+  subset_data <- data[data$Response == level, ]
+  train_size <- round(nrow(subset_data) * train_proportion)
+  train_indices <- sample(1:nrow(subset_data), train_size)
+  train_subset <- subset_data[train_indices, ]
+  test_subset <- subset_data[-train_indices, ]
+  train_set <- rbind(train_set, train_subset)
+  test_set <- rbind(test_set, test_subset)
+}
+
+#check proportion
+train_prop <- round(prop.table(table(train_set$Response)),3)
+test_prop <- round(prop.table(table(test_set$Response)),3)
+data_prop <- round(prop.table(table(data$Response)),3)
+cat('data: ',data_prop,'train: ',train_prop,'test: ',test_prop)
+```
+
+## Explorative Analysis
+
+### Univariate Analysis
