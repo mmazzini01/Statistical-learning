@@ -1,0 +1,79 @@
+---
+title: "Heart Disease Prediction"
+author: "Lorenzo Baietti, Francesco Carlesso, Matteo Mazzini"
+date: "A.Y. 2023/2024"
+font: 11pt
+output:
+  pdf_document:
+    toc: true
+    # number_sections: true
+  html_document:
+    toc: true
+    # number_sections: true
+---
+
+## 1. Project Introduction and Dataset Description
+
+Heart Diseases are the leading cause of death in the world, they can be caused by different kind of factors such as genetics, lifestyle, medical conditions, environmental factors etc. Early diagnosis is crucial for carrying out a successful treatment, therefore we decided to perform an analysis to understand which are the most influential biometrics that define the condition, focusing on a binary classification task which uses parameters that can be obtained simply by performing clinical tests. The dataset we are going to analyze and use for our task is the [*Heart Failure Prediction Dataset*](https://www.kaggle.com/datasets/fedesoriano/heart-failure-prediction) which was created by combining different datasets, already available in the UCI Machine Learning Repository, over common features. This dataset contains 918 patient records described by 11 variables plus a binary target for the diagnosis. Out of all the patients, 508 have a positive diagnosis.
+
+## 2. Data Preprocessing
+
+First, we import all the necessary packages to manipulate the data, then we load the dataset.
+
+```{r echo=TRUE, include=FALSE}
+library(MASS)
+library(corrplot)
+library(car)
+library(pROC)
+library(e1071)
+library(class)
+library(boot)
+library(leaps)
+library(glmnet)
+```
+
+```{r}
+data <- read.csv('Heart Data.csv')
+attach(data)
+```
+
+| Variable       | Description                                                                                                                                          |
+|:---------------------|:-------------------------------------------------|
+| Age            | Age of the patient [Years]                                                                                                                           |
+| Sex            | Sex of the patient [M: Male, F: Female]                                                                                                              |
+| ChestPainType  | Chest Pain Type [TA: Typical Angina, ATA: Atypical Angina, NAP: Non-Anginal Pain, ASY: Asymptomatic]                                                 |
+| RestingBP      | Resting Blood Pressure [mmHg]                                                                                                                        |
+| Cholesterol    | Serum Cholesterol [mm/dL]                                                                                                                            |
+| FastingBS      | Fasting Blood Sugar [1: if FastingBS \> 120 mg/dl, 0: otherwise]                                                                                     |
+| RestingECG     | Resting Electrocardiogram Results [Normal: normal, ST: having ST-T wave abnormality, LVH: showing probable or definite left ventricular hypertrophy] |
+| MaxHR          | Maximum Heart Rate Achieved [range(60-120)]                                                                                                          |
+| ExerciseAngina | Exercise-induced Angina [Y: Yes, N: No]                                                                                                              |
+| Oldpeak        | ST depression [Numerical value]                                                                                                                      |
+| ST_Slope       | Slope of the peak exercise ST segment [Up: upsloping, Flat: flat, Down: downsloping]                                                                 |
+| HeartDisease   | Response [1: if the patient is diagnosed with Heart Disease, 0: otherwise]                                                                           |
+
+## 3. Data Exploration
+
+### 3.1 Univariate Analysis
+
+We perform a univariate analysis on our variables to get a sense of their distributions and characteristics. We provide comments on the plots directly on the script.
+
+### 3.2 Bivariate Analysis
+
+We now perform a bivariate analysis to understand the relationships between the candidate predictors and the response variable. We start from the categorical variables, which require a different treatment from the numerical ones, we analyze them using a contingency table and performing chi-squared tests.
+
+...
+
+Using a significance level of 0.05 we fail to reject the null hypothesis, since the p-value is ... this means that, based on our data, there is not enough evidence to conclude that there is a significant association between ... and the diagnosis.
+
+Next we proceed to analyze the other numerical variables, for each of them we provide a boxplot and a density plot, which are defined by two specific functions declared at the beginning of the script and used to create better visualizations. Again, comments on the plots are provided directly on the script.
+
+### 3.3 Correlation Analysis
+
+As a last step to our EDA, we perform a correlation analysis to understand the relationships between the numerical variables and to grasp which could be the variables characterized by a multicollinearity problem, thus we provide a correlation matrix.
+
+Below we provide motivations for the high correlations found between some of the variables:
+
+## 4. Data Modeling
+
+## 5. Data Interpretation
