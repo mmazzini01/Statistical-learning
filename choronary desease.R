@@ -1,5 +1,4 @@
 ###### Library
-library(readr)
 library(rmarkdown)
 library(corrplot)
 library(MASS)
@@ -7,7 +6,6 @@ library(car)
 library(igraph)
 library(gRbase)
 library(pROC)
-library(caret)
 library(glmnet)
 library(class)
 
@@ -75,15 +73,23 @@ for (i in 1:ncol(numeric_vars)) {
 }
 par(mfrow = c(2, 3))
 for (i in 1:ncol(numeric_vars)) {
+  boxplot(numeric_vars[, i] ~ data$HeartDisease,
+          main = paste("Boxplot of", colnames(numeric_vars)[i], "by Target"),
+          xlab = "Target", ylab = colnames(numeric_vars)[i],
+          col = c("skyblue", "salmon"))
+}
+
+par(mfrow = c(2, 3))
+for (i in 1:ncol(numeric_vars)) {
   plot(density(numeric_vars[data$HeartDisease == 0, i]), 
-       main = paste("Density Plot of", colnames(numeric_vars)[i], "for Target 0"),
+       main = paste("Density Plot ", colnames(numeric_vars)[i], "vs Target"),
        col = "skyblue", lwd = 2, xlim = range(numeric_vars[, i]))
   
   lines(density(numeric_vars[data$HeartDisease == 1, i]), col = "salmon", lwd = 2)
-  
-  legend("topright", legend = c("Target 0", "Target 1"), 
-         col = c("skyblue", "salmon"), lwd = 2)
 }
+plot.new() 
+legend("center", legend = c("Non-Disiased", " Disiased"), 
+       col = c("skyblue", "salmon"), lwd = 2)
 ## Categorical variables
 par(mfrow = c(3, 2), mar = c(2, 2, 4,8))
 for (i in 1:(ncol(cat_vars) - 1)) { 
@@ -104,24 +110,8 @@ for (i in 1:(ncol(cat_vars) - 1)) {
           col = colors,
           xlab = colnames(cat_vars)[i],
           beside = TRUE)
-  legend("topright", legend = levels(cat_vars[, i]), fill = colors, cex = 0.8, inset = c(0, 0))
+  legend("topright", legend = levels(cat_vars[, i]), fill = colors, cex = 0.9, inset = c(0, 0))
 }
-## Correlation
-par(mfrow = c(1, 1))
-pairs(numeric_vars, pch = 16)
-cormat <- round(cor(numeric_vars),2)
-corrplot(cormat, method = "number", type = "lower", 
-         tl.col = "black", tl.srt = 45)
-
-## Partial correlation
-par(mfrow = c(1, 1))
-S <- var(numeric_vars)
-R <- -cov2cor(solve(S))
-thr <- 0.1
-G <- abs(R)>thr
-diag(G) <- 0
-Gi <- as(G, "igraph")
-plot(Gi)
 
 # Contingecy table
 calculate_chi_square <- function(data, target_var, categorical_var) {
@@ -129,7 +119,6 @@ calculate_chi_square <- function(data, target_var, categorical_var) {
   chi_square_test <- chisq.test(contingency_table)
   return(list(contingency_table = contingency_table, chi_square_test = chi_square_test))
 }
-par(mfrow = c(2, 2)) 
 for (col in colnames(cat_vars[,-7])) {
   result <- calculate_chi_square(data, "HeartDisease",col)
   cat("\n")
@@ -137,6 +126,18 @@ for (col in colnames(cat_vars[,-7])) {
   print(result$contingency_table)
   print(result$chi_square_test)
 }
+# from pearso chi-squared test all the null ipothesis of independece are rejected. Our target variable seems to have 
+# associations with all out ìr categorical variable, RestingECG is the only variable that seems to have lesse dependence
+# seeing both graph and chi squared test
+
+## Correlation
+par(mfrow = c(1, 1))
+pairs(numeric_vars, pch = 16)
+cormat <- round(cor(numeric_vars),2)
+corrplot(cormat, method = "number", type = "lower", 
+         tl.col = "black", tl.srt = 45)
+# age seems to be 'central' from the other numeric variables, they are correlated with age, the only exception
+# is given by cholesterol 
 par(mfrow = c(1, 1))
 
 ## Data splitting
@@ -147,6 +148,7 @@ test_indices <- setdiff(1:nrow(data), train_indices)
 train_set <- data[train_indices, ]
 test_set <- data[test_indices, ]
 
+# since our numeric data are represented in different units of measures we proceed with a standardization 
 # Scaling
 numeric_vars_train <- train_set[, sapply(train_set, is.numeric)]
 cat_vars_train <- train_set[, sapply(train_set, is.factor)]
@@ -181,8 +183,7 @@ anova(lr_model, step_model_lr, test="Chisq")
 # Prediction
 pred_lr_prob <- predict(step_model_lr, test_set, type = "response")
 pred_lr <- ifelse(pred_lr_prob > 0.5, 1, 0)
-# we tried different levels of threshold. reducing it would rise recall, that is the most usefull in our case.
-# at the same time we want to keep the other metrics at decent levels
+
 
 # Confusion matrix
 compute_confusion_matrix <- function(Predicted, Actual) {
@@ -211,7 +212,7 @@ compute_metrics <- function(conf_matrix, Actual, Predicted_prob) {
   cat("Accuracy:", acc, "\n")
   cat("Precision:", prec, "\n")
   cat("Recall:", rec, "\n")
-  cat("Specificity:", spec_lr, "\n")
+  cat("Specificity:", spec, "\n")
   cat("Type 1 error:", type_1, "\n")
   cat("F1 Score: ", f1_score, "\n")
   
@@ -223,14 +224,55 @@ compute_metrics <- function(conf_matrix, Actual, Predicted_prob) {
 }
 
 compute_metrics(conf_matrix_lr, test_set$HeartDisease, pred_lr_prob)
+# we tried different levels of threshold. reducing it would rise recall, that is the most usefull in our case.
+# at the same time we want to keep the other metrics at decent levels. 0.5 is the best since lower levels give 
+# negligible advantages in terms of recall but significant worst results in precision
 
+##Logistic-Regression diagnostic
 # Residuals plots
 plot(step_model_lr, 
-     which = c(2,3,4,5),
+     which = c(4,5),
      col = as.numeric(train_set$HeartDisease),
      pch = as.numeric(train_set$HeartDisease),
 )
+# from cook distance and leverage plot we can see that there 3 influential points, we try to eliminate them 
+# and build again our model to compare results
 
+lev_points <- c(680,557,786)
+data[lev_points,]
+train_set_clean <- train_set[!rownames(train_set) %in% lev_points, ]
+lr_model <- glm(HeartDisease ~ . , data=train_set_clean, family=binomial)
+step_model_lr <- stepAIC(lr_model, direction = 'both')
+pred_lr_prob <- predict(step_model_lr, test_set, type = "response")
+pred_lr <- ifelse(pred_lr_prob > 0.5, 1, 0)
+conf_matrix_lr <- compute_confusion_matrix(test_set$HeartDisease, pred_lr)
+conf_matrix_lr
+compute_metrics(conf_matrix_lr, test_set$HeartDisease, pred_lr_prob)
+#model achieve better quality metrics, especially precision
+# and specificity gain significant points with same recall's level
+summary(step_model_lr)#now the model is composed by also the cholesterol variable
+# Sex , ChestPainType, Fasting Blood Sugar, Exercise-Induced Angina, and ST Slope seems to be the most effective 
+# predictors. the coefficients represent the variations of the logit by an additional increase of unit of that variable
+# by keeping the others fixed.Cholesterol is not significant but we keep it since there might be interaction effects between cholesterol 
+# and other variables that is significant even if the individual effect is not. let's check
+updated_model <- update(step_model_lr, . ~ . - Cholesterol)
+summary(updated_model)
+# the AIC confirms that model with cholesterol is better 503.91 vs 504.11
+# odds ratio
+lr_coefficients <- coef(step_model_lr)
+# Calculate the odds ratios
+odds_ratios <- exp(lr_coefficients)
+odds_ratios
+# risk factors for cvd disease are: having one additional unit of age increment the prob of beeing diseased by 38%
+# oldpeak: 44%
+# sex: beeing male 482%
+# asyntomathic chest pain type is considered a risk factor since the other categories bring a decrease of 85-6% for 
+#ATA and NAP, and 62% for TA. this is controintuitive btu it could be by the fact that our data are clearly unbalanced
+#and most of the patients have asyntomatic chest pain type
+# fastingangina: yes increase 261%
+# st-slope_ flat increase 238% , slope up is not consiered a risk factor, prob decrease by 78%
+
+## Ridge and Lasso Regression
 # X and y
 X_train <- model.matrix(HeartDisease~., train_set)[,-1]
 y_train <- as.numeric(as.character(train_set$HeartDisease))
@@ -244,8 +286,7 @@ ridge_cv <- cv.glmnet(X_train, y_train, alpha = 0, family = "binomial", type.mea
 plot(ridge_cv)
 lambda = ridge_cv$lambda.min
 cat("The value for the minimum lambda is ", lambda)
-ridge_coef <- coef(ridge_cv, s = "lambda.min")
-ridge_coef
+
 
 pred_ridge_prob <- predict(ridge_cv, X_test, type = "response", s = lambda)
 pred_ridge <- ifelse(pred_ridge_prob > 0.5, 1, 0)
@@ -256,15 +297,17 @@ conf_matrix_ridge
 
 # Metrics
 compute_metrics(conf_matrix_ridge, y_test, pred_ridge_prob)
+ridge_coef <- coef(ridge_cv, s = "lambda.min")
+ridge_coef
+lr_coefficients
+# predictors shrunk near zero: RestingBP, RestingEcg. other preditors with smaller absolute values are 
+# age, cholesterol and maxHR
 
 # Lasso regression
 lasso_cv <- cv.glmnet(X_train, y_train, alpha = 1, family = "binomial", type.measure = "deviance", nfolds = 10)
 plot(lasso_cv)
 lambda = lasso_cv$lambda.min
 cat("The value for the minimum lambda is ", lambda)
-lasso_coef <- coef(lasso_cv, s = "lambda.min")
-lasso_coef
-
 pred_lasso_prob <- predict(lasso_cv, X_test, type = "response", s = lambda)
 pred_lasso <- ifelse(pred_lasso_prob > 0.5, 1, 0)
 
@@ -274,6 +317,12 @@ conf_matrix_lasso
 
 # Metrics
 compute_metrics(conf_matrix_lasso, y_test, pred_lasso_prob)
+
+lasso_coef <- coef(lasso_cv, s = "lambda.min")
+lasso_coef
+# best logistic regression model seen so far looking at the metrics results.
+# parameters shrunk to zero: RestingBP, RestingECG
+# Cholesterol and MaxHR more shrunked than in ridge, less importance to them.
 
 # LDA
 # Shapiro test
@@ -293,6 +342,7 @@ shapiro_by_group
 lda_model <- lda(HeartDisease ~ ., data = train_set)
 pred_lda_prob <- predict(lda_model, test_set,type ='response')$posterior[,2]
 pred_lda <- as.factor(ifelse(pred_lda_prob > 0.5, 1, 0))
+lda_model$scaling
 
 # Confusion Matrix
 conf_matrix_lda <- compute_confusion_matrix(test_set$HeartDisease, pred_lda)
