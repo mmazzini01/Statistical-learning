@@ -3,8 +3,6 @@ library(rmarkdown)
 library(corrplot)
 library(MASS)
 library(car)
-library(igraph)
-library(gRbase)
 library(pROC)
 library(glmnet)
 library(class)
@@ -50,18 +48,25 @@ for (i in 1:ncol(numeric_vars)) {
   dens <- density(numeric_vars[, i], na.rm=TRUE, adjust=1.25)
   lines(dens, col = "black", lwd = 1)
 }
+# age and maxHR are nearly normal, resting BP ha alcuni valori motlo alti. cholesterol seems to be bimodal. and oldpeak
+# has concentration between zero values with lot of observaztion with higher values
 
 par(mfrow = c(2, 3))
 for (i in 1:ncol(numeric_vars)) {
   boxplot(numeric_vars[, i], main = colnames(numeric_vars)[i],
        xlab = colnames(numeric_vars)[i],col = 'lightblue', freq = FALSE)
 }
+# oldpeack and cholesterol seems to have outliers in the right tail as well as restingBp
+
 ## Categorical variables
 par(mfrow = c(3, 3))
 for (i in 1:ncol(cat_vars)) {
   barplot(table(cat_vars[,i]), main = colnames(cat_vars)[i],
           xlab = colnames(cat_vars)[i],col = c("skyblue", "salmon", "lightgreen",'yellow'))
 }
+# male and female seemst to be quite unbalanced like fastingbs. asynthomatic patient are more numerosi than chestpaiin patient
+# down st slope are much way less than other two levels. our response variable is quite balanced.
+
 ### Bivariate Analysis
 ## Numerical variables
 par(mfrow = c(2, 3))
@@ -71,13 +76,12 @@ for (i in 1:ncol(numeric_vars)) {
           xlab = "Target", ylab = colnames(numeric_vars)[i],
           col = c("skyblue", "salmon"))
 }
-par(mfrow = c(2, 3))
-for (i in 1:ncol(numeric_vars)) {
-  boxplot(numeric_vars[, i] ~ data$HeartDisease,
-          main = paste("Boxplot of", colnames(numeric_vars)[i], "by Target"),
-          xlab = "Target", ylab = colnames(numeric_vars)[i],
-          col = c("skyblue", "salmon"))
-}
+# Age: Individuals with heart disease tend to be slightly older.
+# RestingBP*: Slightly higher resting blood pressure is observed in individuals with heart disease.
+# Cholesterol*: Higher cholesterol levels are more common among those with heart disease.
+# MaxHR*: Lower maximum heart rate is seen in individuals with heart disease.
+# Oldpeak*: Higher oldpeak values are associated with heart disease.
+
 
 par(mfrow = c(2, 3))
 for (i in 1:ncol(numeric_vars)) {
@@ -90,6 +94,12 @@ for (i in 1:ncol(numeric_vars)) {
 plot.new() 
 legend("center", legend = c("Non-Disiased", " Disiased"), 
        col = c("skyblue", "salmon"), lwd = 2)
+# from the plot we can see that diseased people tend to have higher age. resting Bp seems to have no difference.
+# maxhr is higher in patient with disease. Patients with Disease have higher values of oldpeak and it seems that in the 
+# last one group there bimodal distribution with two subgroups with picchi of 0 old peack and 2 respectively. there could 
+# be a subgroup of cholesterol people with higher values. althougth, when we analyze cholesterol we have to remind that 
+# a bunch of values are replaced with the median
+
 ## Categorical variables
 par(mfrow = c(3, 2), mar = c(2, 2, 4,8))
 for (i in 1:(ncol(cat_vars) - 1)) { 
@@ -112,6 +122,13 @@ for (i in 1:(ncol(cat_vars) - 1)) {
           beside = TRUE)
   legend("topright", legend = levels(cat_vars[, i]), fill = colors, cex = 0.9, inset = c(0, 0))
 }
+# More males have heart disease compared to females, and more females do not have heart disease compared to males.
+# most individuals with heart disease have ASY chest pain, while ATA and NAP chest pains are more common in individuals without heart disease. this seems to be controintuitivo but we will discuss later on our analysis
+# Individuals with heart disease have a higher proportion of fasting blood sugar ≥ 120 mg/dl compared to those without heart disease.
+# Individuals without heart disease have a higher proportion of normal resting ECG results, while individuals with heart disease show a higher proportion of ST results. but it seems to be not much significant
+# Exercise-induced angina is more common in individuals with heart disease compared to those without it.
+# Individuals with heart disease have a higher proportion of flat ST slopes, while those without heart disease have a higher proportion of up ST slopes.
+
 
 # Contingecy table
 calculate_chi_square <- function(data, target_var, categorical_var) {
@@ -126,9 +143,7 @@ for (col in colnames(cat_vars[,-7])) {
   print(result$contingency_table)
   print(result$chi_square_test)
 }
-# from pearso chi-squared test all the null ipothesis of independece are rejected. Our target variable seems to have 
-# associations with all out ìr categorical variable, RestingECG is the only variable that seems to have lesse dependence
-# seeing both graph and chi squared test
+# null hypothesis are rejected. chi-squared test confirms associations between our categorical variables and response variable
 
 ## Correlation
 par(mfrow = c(1, 1))
@@ -267,7 +282,7 @@ odds_ratios
 # oldpeak: 44%
 # sex: beeing male 482%
 # asyntomathic chest pain type is considered a risk factor since the other categories bring a decrease of 85-6% for 
-#ATA and NAP, and 62% for TA. this is controintuitive btu it could be by the fact that our data are clearly unbalanced
+#ATA and NAP, and 62% for TA. this is controintuitive but it could be by the fact that our data are clearly unbalanced
 #and most of the patients have asyntomatic chest pain type
 # fastingangina: yes increase 261%
 # st-slope_ flat increase 238% , slope up is not consiered a risk factor, prob decrease by 78%
@@ -325,24 +340,20 @@ lasso_coef
 # Cholesterol and MaxHR more shrunked than in ridge, less importance to them.
 
 # LDA
-# Shapiro test
-shapiro_results <- apply(numeric_vars, 2, shapiro.test)
-shapiro_results
-
-# Eseguire il test di Shapiro-Wilk per ciascun livello della variabile target
-shapiro_by_group <- lapply(levels(train_set$HeartDisease), function(group) {
-  subset_data <- numeric_vars[train_set$HeartDisease == group, ]
-  apply(subset_data, 2, shapiro.test)
-})
-
-names(shapiro_by_group) <- levels(train_set$HeartDisease)
-shapiro_by_group
 # null hypothesis are rejected, in almost all group of variable. no normal distribution in our variable, 
 # we proced with LDA but we keep in mind of that
 lda_model <- lda(HeartDisease ~ ., data = train_set)
 pred_lda_prob <- predict(lda_model, test_set,type ='response')$posterior[,2]
 pred_lda <- as.factor(ifelse(pred_lda_prob > 0.5, 1, 0))
 lda_model$scaling
+# Each coefficient indicates the importance and direction of the influence of a predictor variable on class discrimination.
+# A positive coefficient indicates that an increase in the variable is associated with an increase in the probability of belonging to a particular class,
+#while a negative coefficient indicates the opposite.
+#Strongly Influencing Variables:
+# SexM, ExerciseAnginaY, and ST_SlopeFlat have significant positive coefficients
+#Weakly Influencing Variables:
+#RestingBP, RestingECGNormal, and RestingECGST .they have coefficients very close to zero, indicating that their influence
+#on class discrimination is very weak
 
 # Confusion Matrix
 conf_matrix_lda <- compute_confusion_matrix(test_set$HeartDisease, pred_lda)
@@ -350,6 +361,7 @@ conf_matrix_lda
 
 # Metrics
 compute_metrics(conf_matrix_lda, test_set$HeartDisease, pred_lda_prob)
+# model very valid same metrics score of lasso
 
 # QDA
 qda_model <- qda(HeartDisease ~ ., data = train_set)
@@ -364,13 +376,122 @@ conf_matrix_qda
 compute_metrics(conf_matrix_qda, test_set$HeartDisease, pred_qda_prob)
 
 # KNN
-k <- 5
-pred_knn <- knn(train = X_train, test = X_test, cl = y_train, k = k)
+#k <- 
+#pred_knn <- knn(train = X_train, test = X_test, cl = y_train, k = k)
 
 # Confusion Matrix
-conf_matrix_knn <- compute_confusion_matrix(y_test, pred_knn)
-conf_matrix_knn
+#conf_matrix_knn <- compute_confusion_matrix(y_test, pred_knn)
+#conf_matrix_knn
 
 # Metrics
-compute_metrics(conf_matrix_knn, y_test, as.numeric(pred_knn))
+#compute_metrics(conf_matrix_knn, y_test, as.numeric(pred_knn))
 
+# our data seems to be ambigous since it seems that having chest pain reduce the probability to have hearth disease, so be asyntomatic 
+# is considered a risk factor that is not very likely ro see in reality. so we want to explore better our data to undartand this phenomena
+
+# first we divide chestPainType into two group. the fisrt is composed by asyntomatic patient, while the second  by patient that have a chest pain
+# with no distinction of its type. we want to investigate how this two groups interact with others risk factor variables
+
+patient_with_chest_pain <- data[data$ChestPainType != 'ASY', ]
+patient_without_chest_pain <- data[data$ChestPainType == 'ASY', ] 
+
+par(mfrow = c(1, 2))
+boxplot(patient_with_chest_pain$Age, patient_without_chest_pain$Age,
+        names = c("Pain", "No-Pain"),
+        main = "Age",
+        col = c("skyblue", "salmon"))
+
+boxplot(patient_with_chest_pain$Oldpeak, patient_without_chest_pain$Oldpeak,
+        names = c("Pain", "No-Pain"),
+        main = "Oldpeak ",
+        col = c("skyblue", "salmon"))
+# contegency table for cat. variable
+#ST_slope
+ST_table_with_chest_pain <- table(patient_with_chest_pain$ST_Slope)
+ST_table_without_chest_pain <- table(patient_without_chest_pain$ST_Slope)
+ST_contingency_table <- rbind(ST_table_with_chest_pain, ST_table_without_chest_pain)
+rownames(ST_contingency_table) <- c("With Chest Pain", "Without Chest Pain")
+#Exercise_Angina
+EA_table_with_chest_pain <- table(patient_with_chest_pain$ExerciseAngina)
+EA_table_without_chest_pain <- table(patient_without_chest_pain$ExerciseAngina)
+EA_contingency_table <- rbind(EA_table_with_chest_pain, EA_table_without_chest_pain)
+rownames(EA_contingency_table) <- c("With Chest Pain", "Without Chest Pain")
+ST_chi_square_test <- chisq.test(ST_contingency_table)
+EA_chi_square_test <- chisq.test(EA_contingency_table)
+# from the boxplot and contigecy table we can see that asynthomatic patient tend to have higher values in risk factor. this couold be
+# brought by two reasons. the first is that our data are biased. the second is a medical one, for example most of hearth disease have no
+# syntom or maybe there is others medical issue that we cannot grasp
+# to check if our data are biased we try to remove this variable and we see if this variable really bring additional information or other
+# variables themselves could do the work alone. we try our best model lasso regression
+par(mfrow = c(1, 1))
+
+# Lasso regression less parameter
+X_train_reduced <- model.matrix(HeartDisease~., train_set[,-c(7)])[,-1]
+y_train <- as.numeric(as.character(train_set$HeartDisease))
+
+X_test_reduced <- model.matrix(HeartDisease~., test_set[,-c(7)])[,-1]
+y_test <- as.numeric(as.character(test_set$HeartDisease))
+lasso_red <- cv.glmnet(X_train_reduced, y_train, alpha = 1, family = "binomial", type.measure = "deviance", nfolds = 10)
+plot(lasso_cv)
+lambda = lasso_cv$lambda.min
+cat("The value for the minimum lambda is ", lambda)
+pred_lasso_red__prob <- predict(lasso_red, X_test_reduced, type = "response", s = lambda)
+pred_lasso_red <- ifelse(pred_lasso_prob > 0.5, 1, 0)
+
+# Confusion Matrix
+conf_matrix_lasso_reduced <- compute_confusion_matrix(y_test, pred_lasso_red)
+conf_matrix_lasso_reduced
+
+# Metrics
+compute_metrics(conf_matrix_lasso_reduced, y_test, pred_lasso_red_prob)
+
+# it seems that the model achieve the same results also with that variable, this suggest to us that our data have some bais
+# since at fisrt chestpaintipe is considere one of the most significative variable for our prediction. but in reality
+# no additional information are brought since the model remains pretty much the same. (guardare confounding effect)
+
+lasso_red_coef <- coef(lasso_cv, s = "lambda.min")
+lasso_red_coef
+
+#now we saw that most of the variables considered risk factors are the ones coming from a cardiac stress test. this could be very
+#usefull  information in every day life because this test could be use alone for predicting patient heart disesase. now , taking into
+#account this aspect we want to build a model with only these variable and compare the results with our full model. if the variation 
+# is not significative this coul be use as a point of riferimento for meds anc other exams like analisi del sangue could be trascured.
+# we try again our best model
+
+# Lasso regression with demographic and stress test parameters
+X_train_stress <- model.matrix(HeartDisease~., train_set[,-c(3,7,8)])[,-1]
+y_train <- as.numeric(as.character(train_set$HeartDisease))
+
+X_test_stress <- model.matrix(HeartDisease~., test_set[,-c(3,7,8)])[,-1]
+y_test <- as.numeric(as.character(test_set$HeartDisease))
+lasso_stress <- cv.glmnet(X_train_stress, y_train, alpha = 1, family = "binomial", type.measure = "deviance", nfolds = 10)
+plot(lasso_cv)
+lambda = lasso_cv$lambda.min
+cat("The value for the minimum lambda is ", lambda)
+pred_lasso_stress__prob <- predict(lasso_stress, X_test_stress, type = "response", s = lambda)
+pred_lasso_stress <- ifelse(pred_lasso_stress__prob > 0.5, 1, 0)
+
+# Confusion Matrix
+conf_matrix_lasso_stress<- compute_confusion_matrix(y_test, pred_lasso_stress)
+conf_matrix_lasso_stress
+
+# Metrics
+compute_metrics(conf_matrix_lasso_stress, y_test, pred_lasso_stress_prob)
+
+lasso_stress_coef <- coef(lasso_cv, s = "lambda.min")
+lasso_stress_coef
+# valid metrics, this model could be use 
+
+# LDA model with stress test parameters
+lda_stress_model <- lda(HeartDisease ~ ., data = train_set[,-c(3,7,8)])
+pred_stress_lda_prob <- predict(lda_stress_model, test_set,type ='response')$posterior[,2]
+pred_stress_lda <- as.factor(ifelse(pred_stress_lda_prob > 0.5, 1, 0))
+lda_stress_model$scaling
+
+# Confusion Matrix
+conf_matrix_lda_stress <- compute_confusion_matrix(test_set$HeartDisease, pred_stress_lda)
+conf_matrix_lda_stress
+
+# Metrics
+compute_metrics(conf_matrix_lda_stress, test_set$HeartDisease, pred_stress_lda)
+# also this model very valid, slightly better recall but worst precision
