@@ -300,7 +300,7 @@ cumpute_AIC_R_L <- function(pred, coef, y){
   rss <- sum((y - pred)^2)
   edf <- sum(coef != 0)
   aic_ridge <- n * log(rss/n) + 2 * edf
-  cat("AIC: ", aic_ridge, "\n")
+  cat("AIC: ", aic, "\n")
 }
 
 # Ridge regression
