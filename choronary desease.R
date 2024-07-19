@@ -295,6 +295,13 @@ y_train <- as.numeric(as.character(train_set$HeartDisease))
 X_test <- model.matrix(HeartDisease~., test_set)[,-1]
 y_test <- as.numeric(as.character(test_set$HeartDisease))
 
+cumpute_AIC_R_L <- function(pred, coef, y){
+  n <- length(y)
+  rss <- sum((y - pred)^2)
+  edf <- sum(coef != 0)
+  aic_ridge <- n * log(rss/n) + 2 * edf
+  cat("AIC: ", aic_ridge, "\n")
+}
 
 # Ridge regression
 ridge_cv <- cv.glmnet(X_train, y_train, alpha = 0, family = "binomial", type.measure = "deviance", nfolds = 10)
@@ -315,6 +322,7 @@ compute_metrics(conf_matrix_ridge, y_test, pred_ridge_prob)
 ridge_coef <- coef(ridge_cv, s = "lambda.min")
 ridge_coef
 lr_coefficients
+cumpute_AIC_R_L(pred_ridge, ridge_coef, y_test)
 # predictors shrunk near zero: RestingBP, RestingEcg. other preditors with smaller absolute values are 
 # age, cholesterol and maxHR
 
@@ -335,6 +343,7 @@ compute_metrics(conf_matrix_lasso, y_test, pred_lasso_prob)
 
 lasso_coef <- coef(lasso_cv, s = "lambda.min")
 lasso_coef
+cumpute_AIC_R_L(pred_lasso, lasso_coef, y_test)
 # best logistic regression model seen so far looking at the metrics results.
 # parameters shrunk to zero: RestingBP, RestingECG
 # Cholesterol and MaxHR more shrunked than in ridge, less importance to them.
@@ -342,10 +351,26 @@ lasso_coef
 # LDA
 # null hypothesis are rejected, in almost all group of variable. no normal distribution in our variable, 
 # we proced with LDA but we keep in mind of that
+
+cumpute_AIC_L_Q <- function(model_type, model, data, X, y){
+  pred <- predict(model, data)$posterior
+  log_likelihood <- sum(log(rowSums(pred * (model.matrix(~ HeartDisease - 1, data = data)))))
+  if(model_type == 'LDA') {
+    n_params <- ncol(X) + (ncol(X) * (ncol(X) + 1)) / 2 + length(unique(y)) - 1
+  }
+  else if (model_type == 'QDA'){
+    n_classes <- length(unique(y))
+    n_params <- n_classes * (ncol(X) + (ncol(X) * (ncol(X) + 1)) / 2) + n_classes - 1
+  }
+  aic <- -2 * log_likelihood + 2 * n_params
+  cat("AIC: ", aic, "\n")
+}
+
 lda_model <- lda(HeartDisease ~ ., data = train_set)
 pred_lda_prob <- predict(lda_model, test_set,type ='response')$posterior[,2]
 pred_lda <- as.factor(ifelse(pred_lda_prob > 0.5, 1, 0))
 lda_model$scaling
+
 # Each coefficient indicates the importance and direction of the influence of a predictor variable on class discrimination.
 # A positive coefficient indicates that an increase in the variable is associated with an increase in the probability of belonging to a particular class,
 #while a negative coefficient indicates the opposite.
@@ -363,6 +388,8 @@ conf_matrix_lda
 compute_metrics(conf_matrix_lda, test_set$HeartDisease, pred_lda_prob)
 # model very valid same metrics score of lasso
 
+cumpute_AIC_L_Q('LDA',lda_model, train_set, train_set[, 1:11], train_set[, 12])
+
 # QDA
 qda_model <- qda(HeartDisease ~ ., data = train_set)
 pred_qda_prob <- predict(qda_model, test_set,type ='response')$posterior[,2]
@@ -375,6 +402,7 @@ conf_matrix_qda
 # Metrics
 compute_metrics(conf_matrix_qda, test_set$HeartDisease, pred_qda_prob)
 
+cumpute_AIC_L_Q('QDA',qda_model, train_set, train_set[, 1:11], train_set[, 12])
 # KNN
 #k <- 
 #pred_knn <- knn(train = X_train, test = X_test, cl = y_train, k = k)
